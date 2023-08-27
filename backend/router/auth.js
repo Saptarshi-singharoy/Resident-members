@@ -1,5 +1,6 @@
 import express from "express"
 import Member from "../model/userschema.js"
+import bcrypt from "bcryptjs"
 
 const router = express.Router()
 
@@ -45,11 +46,24 @@ router.post('/signin', async (req, res)=>{
             res.status(422).json({message: `please provide credentials` })
         }
     
-        const matchMember = await Member.findOne({fullname: fullname, password: password})
+        const matchMember = await Member.findOne({fullname: fullname})
         if (matchMember) {
-          res.status(200).json({message: `welcome`})  
+            const isMatch = await bcrypt.compare(password, matchMember.password)
+
+           const token = await matchMember.generateAuthToken();
+           console.log(token);
+           res.cookie("jwtoken", token, {
+            expires: new Date(Date.now() + 25892000000),
+            httpOnly: true
+           })
+
+        if (!isMatch){
+         res.status(400).json({message: `invalid credentials`})
         } else {
-            res.status(400).json({message: `invalid credentials`})
+            res.status(200).json({message: `welcome`})
+        }
+        } else {
+            res.status(400).json({message: `invalid credentials name`})
         }
     } catch (error) {
         console.log(error);
